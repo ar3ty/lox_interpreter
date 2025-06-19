@@ -1,15 +1,54 @@
 from tokentype import *
 from expr import *
+from stmt import *
 
-class ParseError(RuntimeError):
+class ParseError(Exception):
     def __init__(self, token: Token, message: str) -> None:
-        super().__init__(message)
+        self.message = message
         self.token = token
+
+    def report(self, where='') -> str:
+        if where == '':
+            if self.token.type == TokenType.EOF:
+                where = "at end"
+            else:
+                where = f"at '{self.token.lexeme}'"
+        return f"Parse error {where} [line {self.token.line}]: {self.message}\n"
 
 class Parser:
     def __init__(self, tokens: list[Token]) -> None:
-        self.tokens = tokens
+        self.tokens: list[Token] = tokens
+        self.errors: list[ParseError] = []
         self.current = 0
+
+    def parse(self):
+        statements = []
+        try:
+            while not self.is_at_end():
+                statements.append(self.statement())
+            return statements, []
+        except ParseError:
+            return None, self.errors
+        """
+        try:
+            return self.expression(), []
+        except ParseError:
+            return None, self.errors
+        """
+        
+    def statement(self) -> Stmt:
+        if self.match(TokenType.PRINT): return self.print_statement()
+        return self.expr_statement()
+    
+    def print_statement(self) -> Stmt:
+        value = self.expression()
+        self.consume(TokenType.SEMICOLON, "Expect ';' after value.")
+        return Print(value)
+    
+    def expr_statement(self) -> Stmt:
+        expr = self.expression()
+        self.consume(TokenType.SEMICOLON, "Expect ';' after value.")
+        return Expression(expr)
 
     def expression(self) -> Expr:
         return self.equality()
@@ -72,6 +111,23 @@ class Parser:
             self.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.")
             expr = Grouping(expr)
             return expr
+        if self.match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL):
+            self.error(self.previous(), "Miising left-hand operand.")
+            self.equality()
+            return None
+        if self.match(TokenType.GREATER_EQUAL, TokenType.LESS_EQUAL, TokenType.LESS, TokenType.GREATER):
+            self.error(self.previous(), "Miising left-hand operand.")
+            self.comparison()
+            return None
+        if self.match(TokenType.PLUS):
+            self.error(self.previous(), "Miising left-hand operand.")
+            self.term()
+            return None
+        if self.match(TokenType.STAR, TokenType.SLASH):
+            self.error(self.previous(), "Miising left-hand operand.")
+            self.factor()
+            return None
+        self.error(self.peek(), "Expect expression.")
 
     def match(self, *types: TokenType) -> bool:
         for typ in types:
@@ -83,10 +139,36 @@ class Parser:
     def consume(self, typ: TokenType, message: str) -> Token:
         if self.check(typ):
             return self.advance()
-        raise self.error(self.peek(), message)
+        self.error(self.peek(), message)
     
     def error(self, token: Token, message:str) -> ParseError:
-        return ParseError(token, message)
+        error = ParseError(token, message)
+        self.errors.append(error)
+        raise error
+
+    def synchronize(self):
+        self.advance()
+        while not self.is_at_end():
+            if self.previous().type == TokenType.SEMICOLON:
+                return
+            match self.peek().type:
+                case TokenType.CLASS:
+                    return
+                case TokenType.FUN:
+                    return
+                case TokenType.VAR:
+                    return
+                case TokenType.FOR:
+                    return
+                case TokenType.IF:
+                    return
+                case TokenType.WHILE:
+                    return
+                case TokenType.PRINT:
+                    return
+                case TokenType.RETURN:
+                    return
+            self.advance() 
 
     def check(self, typ: TokenType) -> bool:
         if self.is_at_end():

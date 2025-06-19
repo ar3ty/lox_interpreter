@@ -1,15 +1,13 @@
 from tokentype import TokenType, Token
 
-
-class ScanError:
+class ScanError(Exception):
     def __init__(self, line: int, message: str):
         self.line = line
         self.message = message
 
     def report(self, where='') -> str:
-        return f"Error in {where} [line {self.line}]: {self.message}\n"
+        return f"Scan error in {where} [line {self.line}]: {self.message}\n"
     
-
 class Scanner:
     keywords = {
         "and": TokenType.AND,
@@ -42,11 +40,14 @@ class Scanner:
         return self.current >= len(self.source)
 
     def scan_tokens(self):
-        while not self.is_at_end():
-            self.start = self.current
-            self.scan_token()
-        self.tokens.append(Token(TokenType.EOF, "", None, self.line))
-        return self.tokens, self.errors
+        try:
+            while not self.is_at_end():
+                self.start = self.current
+                self.scan_token()
+            self.tokens.append(Token(TokenType.EOF, "", None, self.line))
+            return self.tokens, self.errors
+        except ScanError:
+            return self.tokens, self.errors
     
     def scan_token(self) -> None:
         c = self.advance()
@@ -186,5 +187,7 @@ class Scanner:
         self.tokens.append(Token(typ, text, literal, self.line))
 
     def error(self, message: str) -> None:
-        self.errors.append(ScanError(self.line, message))
+        error = ScanError(self.line, message)
+        self.errors.append(error)
+        raise error
 

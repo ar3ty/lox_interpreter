@@ -1,6 +1,3 @@
-if (condition) return
-"value" 123
-123.555
-"lplll[]"
-koin = 13 + 78
-{"jkkjkj"}
+print "one";
+print true;
+print 1 + 2;

@@ -7,23 +7,32 @@ def main() -> None:
         sys.exit(64)
     output_dir = sys.argv[1]
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-    define_ast(output_dir, "Expr", [
+    import_for_expr = ["from typing import Any, Protocol",
+                       "from tokentype import Token"]
+    import_for_stmt = import_for_expr + ["from expr import Expr"]
+    define_ast(output_dir, "Expr", import_for_expr, [
         "Binary   : Expr left, Token operator, Expr right",
         "Grouping : Expr expression",
         "Literal  : Any value",
         "Unary    : Token operator, Expr right"
     ])
+    define_ast(output_dir, "Stmt", import_for_stmt, [
+        "Expression : Expr expression",
+        "Print      : Expr expression"
+    ])
 
 
-def define_ast(output_dir: str, base_name: str, types: list[str]) -> None:
+
+def define_ast(output_dir: str, base_name: str, imports: list[str], types: list[str]) -> None:
     path = Path(output_dir) / f"{base_name.lower()}.py"
     with open (path, 'w', encoding='utf-8') as writer:
         # File heading
-        writer.write(f"from typing import Any, Protocol\n")
-        writer.write(f"from tokentype import Token\n\n")
+        for imprt in imports:
+            writer.write(f"{imprt}\n")
+        writer.write(f"\n")
         define_visitor(writer, base_name, types)
         writer.write(f"class {base_name}:\n")
-        writer.write(f"    def accept(self, visitor: Visitor) -> Any:\n"+
+        writer.write(f"    def accept(self, visitor: {base_name}Visitor) -> Any:\n"+
                      f"        raise NotImplementedError(\"Method accept() must be realized\")\n\n")
         for type_def in types:
             class_name, fields = type_def.split(':', 1)
@@ -45,19 +54,19 @@ def define_type(writer, base_name: str, class_name: str, fields: str) -> None:
         typ, name = field.strip().split()
         writer.write(f"        self.{name} = {name}\n")
     writer.write('\n' +
-                 f"    def accept(self, visitor: Visitor) -> Any:\n" +
+                 f"    def accept(self, visitor: {base_name}Visitor) -> Any:\n" +
                  f"        return visitor.visit_{class_name.lower()}_{base_name.lower()}(self)")
     writer.write(f"\n\n")
 
 
 def define_visitor(writer, base_name: str, types: list[str]) -> None:
     # Visitor interface generation
-    writer.write("class Visitor(Protocol):\n")
+    writer.write(f"class {base_name}Visitor(Protocol):\n")
     for type in types:
         name = type.split(':')[0].strip()
         writer.write(
             f"    def visit_{name.lower()}_{base_name.lower()}" +
-            f"(self, {base_name.lower()}: {name}) -> Any: ...\n"
+            f"(self, {base_name.lower()}: \"{name}\") -> Any: ...\n"
         )
     writer.write("\n")
 

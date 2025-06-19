@@ -1,5 +1,8 @@
 import sys, locale
-from scanner import *
+from scanner import Scanner
+from astprinter import AstPrinter
+from parser import Parser
+from interpreter import Interpreter
     
 def main(argv: list) -> None:
     if len(argv) > 2:
@@ -14,9 +17,9 @@ def run_file(path: str) -> None:
     with open(path, 'rb') as f:
         bytes = f.read()
     text = bytes.decode(locale.getpreferredencoding())
-    errors = run(text, path)
-    if errors:
-        sys.exit(65)
+    error = run(text)
+    if error:
+        sys.exit(error)
 
 def run_prompt() -> None:
     try:
@@ -28,22 +31,41 @@ def run_prompt() -> None:
                 break
     except KeyboardInterrupt:
         print("Stoped due to the user interruption")
-        
-had_error = False
 
-def run(code: str, where:str = '') -> list[ScanError]:
+def run(code: str):
     scanner = Scanner(code)
-    tokens, errors = scanner.scan_tokens()
+    tokens, scan_errors = scanner.scan_tokens()
 
-    if errors:
-        for error in errors:
-            sys.stderr.write(error.report(where))
+    if scan_errors:
+        for error in scan_errors:
+            sys.stderr.write(error.report())
         sys.stderr.flush()
-        return errors
+        return 65
+    print(tokens)
 
-    for token in tokens:
-        print(token)
+    parser = Parser(tokens)
+    statements, parse_errors = parser.parse()
 
+    if parse_errors:
+        for error in parse_errors:
+            sys.stderr.write(error.report())
+        sys.stderr.flush()
+        return 65
+    
+    
+    interpreter = Interpreter()
+    text, runtime_errors = interpreter.interpret(statements)
+    print(runtime_errors)
+
+    if runtime_errors:
+        for error in runtime_errors:
+            sys.stderr.write(error.report())
+        sys.stderr.flush()
+        return 70
+    
+    print(text)
+    return None
+    
 
 if __name__ == "__main__":
     main(sys.argv)
