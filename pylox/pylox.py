@@ -41,7 +41,6 @@ def run(code: str):
             sys.stderr.write(error.report())
         sys.stderr.flush()
         return 65
-    print(tokens)
 
     parser = Parser(tokens)
     statements, parse_errors = parser.parse()
@@ -55,7 +54,6 @@ def run(code: str):
     
     interpreter = Interpreter()
     text, runtime_errors = interpreter.interpret(statements)
-    print(runtime_errors)
 
     if runtime_errors:
         for error in runtime_errors:
@@ -63,7 +61,6 @@ def run(code: str):
         sys.stderr.flush()
         return 70
     
-    print(text)
     return None
     
 

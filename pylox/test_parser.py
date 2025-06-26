@@ -22,21 +22,21 @@ class TestParser(unittest.TestCase):
         tokens.append(Token(TokenType.EOF, "", None, 1))
         parser = Parser(tokens)
         statements, errors = parser.parse()
-        expression = Binary(
-            Binary(
-                Grouping(Binary(
-                    Literal(5.0),
+        expression = ExprBinary(
+            ExprBinary(
+                ExprGrouping(ExprBinary(
+                    ExprLiteral(5.0),
                     Token(TokenType.MINUS, "-", None, 1),
-                    Literal(3.0)
+                    ExprLiteral(3.0)
                 )),
                 Token(TokenType.STAR, "*", None, 1),
-                Unary(
+                ExprUnary(
                     Token(TokenType.MINUS, "-", None, 1),
-                    Literal(2.0)
+                    ExprLiteral(2.0)
                 )
             ),
             Token(TokenType.EQUAL_EQUAL, "==", None, 1),
-            Literal(4.0)
+            ExprLiteral(4.0)
             )
         printer = AstPrinter()
         ast1 = printer.print(expression)
@@ -50,21 +50,21 @@ class TestParser(unittest.TestCase):
         tokens, errors = scanner.scan_tokens()
         parser = Parser(tokens)
         pr_stmts, errors = parser.parse()
-        expression = Binary(
-            Binary(
-                Grouping(Binary(
-                    Literal(5.0),
+        expression = ExprBinary(
+            ExprBinary(
+                ExprGrouping(ExprBinary(
+                    ExprLiteral(5.0),
                     Token(TokenType.MINUS, "-", None, 1),
-                    Literal(3.0)
+                    ExprLiteral(3.0)
                 )),
                 Token(TokenType.STAR, "*", None, 1),
-                Unary(
+                ExprUnary(
                     Token(TokenType.MINUS, "-", None, 1),
-                    Literal(2.0)
+                    ExprLiteral(2.0)
                 )
             ),
             Token(TokenType.EQUAL_EQUAL, "==", None, 1),
-            Literal(4.0)
+            ExprLiteral(4.0)
             )
         printer = AstPrinter()
         ast1 = printer.print(expression)
@@ -78,7 +78,7 @@ class TestParser(unittest.TestCase):
         tokens, errors = scanner.scan_tokens()
         parser = Parser(tokens)
         pr_expr, errors = parser.parse()
-        self.assertEqual(pr_expr, None)
+        self.assertEqual(pr_expr, [None])
         self.assertIn(errors[0].message, "Expect expression.")
 
     def test_no_right_paren(self):
@@ -87,5 +87,5 @@ class TestParser(unittest.TestCase):
         tokens, errors = scanner.scan_tokens()
         parser = Parser(tokens)
         pr_expr, errors = parser.parse()
-        self.assertEqual(pr_expr, None)
+        self.assertEqual(pr_expr, [None])
         self.assertIn(errors[0].message, "Expect ')' after expression.")

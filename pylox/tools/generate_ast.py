@@ -11,14 +11,24 @@ def main() -> None:
                        "from tokentype import Token"]
     import_for_stmt = import_for_expr + ["from expr import Expr"]
     define_ast(output_dir, "Expr", import_for_expr, [
+        "Assign   : Token name, Expr value",
         "Binary   : Expr left, Token operator, Expr right",
+        "Call     : Expr callee, Token paren, list[Expr] arguments",
         "Grouping : Expr expression",
         "Literal  : Any value",
-        "Unary    : Token operator, Expr right"
+        "Logical  : Expr left, Token operator, Expr right",
+        "Unary    : Token operator, Expr right",
+        "Variable : Token name"
     ])
     define_ast(output_dir, "Stmt", import_for_stmt, [
+        "Block      : list[Stmt] statements",
         "Expression : Expr expression",
-        "Print      : Expr expression"
+        "Function   : Token name, list[Token] parameters, list[Stmt] body",
+        "If         : Expr condition, Stmt then_branch, Stmt else_branch",
+        "Print      : Expr expression",
+        "Return     : Token keyword, Expr value",
+        "Var        : Token name, Expr initializer",
+        "While      : Expr condition, Stmt body"
     ])
 
 
@@ -41,14 +51,14 @@ def define_ast(output_dir: str, base_name: str, imports: list[str], types: list[
 
 def define_type(writer, base_name: str, class_name: str, fields: str) -> None:
     # subclass head
-    writer.write(f"class {class_name.strip()}({base_name}):\n")
+    writer.write(f"class {base_name}{class_name.strip()}({base_name}):\n")
     fields = fields.strip().split(", ")
     writer.write(f"    def __init__(self")
     # type announcement
     for field in fields:
         typ, name = field.strip().split()
         writer.write(f", {name}: {typ}")
-    writer.write(f"):\n")
+    writer.write(f") -> None:\n")
     # init filling
     for field in fields:
         typ, name = field.strip().split()
@@ -66,7 +76,7 @@ def define_visitor(writer, base_name: str, types: list[str]) -> None:
         name = type.split(':')[0].strip()
         writer.write(
             f"    def visit_{name.lower()}_{base_name.lower()}" +
-            f"(self, {base_name.lower()}: \"{name}\") -> Any: ...\n"
+            f"(self, {base_name.lower()}: \"{base_name}{name}\") -> Any: ...\n"
         )
     writer.write("\n")
 

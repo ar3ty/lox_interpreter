@@ -1,0 +1,50 @@
+import unittest, io, sys
+import unittest.mock
+
+from scanner import Scanner
+from parser import *
+from interpreter import *
+
+class TestInterpreter(unittest.TestCase):
+    def test_full_interpret(self):
+        source = """var a = "global a";
+var b = "global b";
+var c = "global c";
+{
+  var a = "outer a";
+  var b = "outer b";
+  {
+    var a = "inner a";
+    print a;
+    print b;
+    print c;
+  }
+  print a;
+  print b;
+  print c;
+}
+print a;
+print b;
+print c;"""
+        scanner = Scanner(source)
+        tokens, scan_errors = scanner.scan_tokens()
+        self.assertEqual(scan_errors, [])
+        parser = Parser(tokens)
+        statements, parse_errors = parser.parse()     
+        self.assertEqual(parse_errors, [])
+        output_buffer = io.StringIO()
+        with unittest.mock.patch('sys.stdout', new=output_buffer):   
+            interpreter = Interpreter()
+            _, errors = interpreter.interpret(statements)
+        output = output_buffer.getvalue().strip()
+        expected = """inner a
+outer b
+global c
+outer a
+outer b
+global c
+global a
+global b
+global c"""
+        self.assertEqual(output, expected)
+        self.assertEqual(errors, [])
