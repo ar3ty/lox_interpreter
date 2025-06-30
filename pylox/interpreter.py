@@ -20,14 +20,6 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return None, self.errors
         except RuntimeException:
             return None, self.errors
-        """
-        try:
-            value = self.evaluate(expr)
-            text = self.stringify(value)
-            return text, self.errors
-        except RuntimeException:
-            return None, self.errors
-        """
         
     def stringify(self, value: Any) -> str:
         if value is None: return "nil"
@@ -62,7 +54,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
                     return float(left) + float(right)
                 if isinstance(left, str) and isinstance(right, str):
                     return str(left) + str(right)
-                self.error(expr.operator, "Operand must be two numbers or two strings.")
+                raise self.error(expr.operator, "Operand must be two numbers or two strings.")
     
             case TokenType.SLASH:
                 self.check_number_operands(expr.operator, left, right)
@@ -119,11 +111,11 @@ class Interpreter(ExprVisitor, StmtVisitor):
 
     def check_number_operand(self, operator: Token, obj: Any):
         if isinstance(obj, float): return
-        self.error(operator, "Operand must be a number.")
+        raise self.error(operator, "Operand must be a number.")
     
     def check_number_operands(self, operator: Token, left: Any, right: Any):
         if isinstance(left, float) and isinstance(right, float): return
-        self.error(operator, "Operands must be numbers.")
+        raise self.error(operator, "Operands must be numbers.")
 
     def is_truthy(self, obj: Any) -> bool:
         if obj == None: return False
@@ -158,14 +150,14 @@ class Interpreter(ExprVisitor, StmtVisitor):
     def error(self, token: Token, message:str) -> RuntimeException:
         error = RuntimeException(token, message)
         self.errors.append(error)
-        raise error
+        return error
     
     def visit_expression_stmt(self, stmt: StmtExpression) -> None:
         self.evaluate(stmt.expression)
         return None
     
     def visit_function_stmt(self, stmt: StmtFunction) -> None:
-        function = LoxFunction(stmt)
+        function = LoxFunction(stmt, self.environment)
         self.environment.define(stmt.name.lexeme, function)
         return None
     

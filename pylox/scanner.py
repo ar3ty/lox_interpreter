@@ -106,7 +106,7 @@ class Scanner:
                 elif c.isalpha():
                     self.identifier()
                 else:
-                    self.error("Unexpected character.")
+                    raise self.error("Unexpected character.")
     
     def identifier(self) -> None:
         while self.peek().isalnum() or self.peek() == '_':
@@ -133,8 +133,7 @@ class Scanner:
                 self.line += 1
             self.advance()
         if self.is_at_end():
-            self.error("Unterminated string.")
-            return
+            raise self.error("Unterminated string.")
         self.advance()
 
         value : str = self.source[self.start + 1:self.current - 1]
@@ -156,8 +155,7 @@ class Scanner:
             else:
                 self.advance()
         if self.is_at_end():
-            self.error("Unterminated block comment.")
-            return
+            raise self.error("Unterminated block comment.")
 
     def match(self, char: str) -> bool:
         if self.is_at_end():
@@ -186,8 +184,8 @@ class Scanner:
         text = self.source[self.start:self.current]
         self.tokens.append(Token(typ, text, literal, self.line))
 
-    def error(self, message: str) -> None:
+    def error(self, message: str):
         error = ScanError(self.line, message)
         self.errors.append(error)
-        raise error
+        return error
 

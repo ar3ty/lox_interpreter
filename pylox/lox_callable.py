@@ -25,11 +25,12 @@ class Clock(LoxCallable):
         return "native clock function"
     
 class LoxFunction(LoxCallable):
-    def __init__(self, declaration: StmtFunction):
+    def __init__(self, declaration: StmtFunction, closure: Environment):
         self.declaration = declaration
+        self.closure = closure
 
     def call(self, interpreter, arguments: list[Any]):
-        environment = Environment(interpreter.globals)
+        environment = Environment(self.closure)
         for i in range(len(self.declaration.parameters)):
             environment.define(self.declaration.parameters[i].lexeme, arguments[i])
         try:

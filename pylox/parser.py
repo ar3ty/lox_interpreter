@@ -29,12 +29,6 @@ class Parser:
             return statements, self.errors
         except ParseError:
             return None, self.errors
-        """
-        try:
-            return self.expression(), []
-        except ParseError:
-            return None, self.errors
-        """
         
     def statement(self) -> Stmt:
         if self.match(TokenType.FOR): return self.for_statement()
@@ -92,6 +86,7 @@ class Parser:
         if not self.check(TokenType.SEMICOLON):
             value = self.expression()
         self.consume(TokenType.SEMICOLON, "Expect ';' after return value.")
+        return StmtReturn(keyword, value)
 
     def var_declaration(self) -> Stmt:
         name = self.consume(TokenType.IDENTIFIER, "Expect variable name.")
@@ -108,7 +103,6 @@ class Parser:
         body = self.statement()
         return StmtWhile(condition, body)
 
-    
     def expr_statement(self) -> Stmt:
         expr = self.expression()
         self.consume(TokenType.SEMICOLON, "Expect ';' after value.")

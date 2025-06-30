@@ -102,7 +102,15 @@ for (var i = 0; i < 20; i = i + 1) {
 21
 34
 55
-89"""
+89
+144
+233
+377
+610
+987
+1597
+2584
+4181"""
         self.assertEqual(output, expected)
         self.assertEqual(errors, [])
     
