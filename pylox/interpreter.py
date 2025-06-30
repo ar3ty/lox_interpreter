@@ -10,6 +10,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         self.errors: list = []
         self.globals = Environment()
         self.environment = self.globals
+        self.locals = {}
         self.globals.define("clock", Clock())
 
 
@@ -107,7 +108,14 @@ class Interpreter(ExprVisitor, StmtVisitor):
         return None
     
     def visit_variable_expr(self, expr: ExprVariable) -> Any:
-        return self.environment.get(expr.name)
+        return self.look_up_variable(expr.name, expr)
+    
+    def look_up_variable(self, name: Token, expr: Expr) -> Any:
+        distance = self.locals[expr]
+        if distance != None:
+            return self.environment.get_at(distance, name.lexeme)
+        else:
+            return self.globals[name]
 
     def check_number_operand(self, operator: Token, obj: Any):
         if isinstance(obj, float): return
@@ -133,6 +141,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
     
     def execute(self, stmt: Stmt) -> None:
         stmt.accept(self)
+
+    def resolve(self, expr: Expr, depth: int) -> None:
+        self.locals[expr] = depth
 
     def execute_block(self, statements: list[Stmt], environment: Environment) -> None:
         previous = self.environment
@@ -192,5 +203,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
 
     def visit_assign_expr(self, expr: ExprAssign):
         value = self.evaluate(expr.value)
-        self.environment.assign(expr.name, value)
+        distance = self.locals[expr]
+        if distance != None:
+            self.environment.assign_at(distance, expr.name, value)
+        else:
+            self.globals.assign(expr.name, value)
         return value
