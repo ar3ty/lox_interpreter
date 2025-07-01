@@ -111,11 +111,13 @@ class Interpreter(ExprVisitor, StmtVisitor):
         return self.look_up_variable(expr.name, expr)
     
     def look_up_variable(self, name: Token, expr: Expr) -> Any:
-        distance = self.locals[expr]
+        distance = None
+        if expr in self.locals:
+            distance = self.locals[expr]
         if distance != None:
             return self.environment.get_at(distance, name.lexeme)
         else:
-            return self.globals[name]
+            return self.globals.get(name)
 
     def check_number_operand(self, operator: Token, obj: Any):
         if isinstance(obj, float): return
@@ -203,7 +205,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
 
     def visit_assign_expr(self, expr: ExprAssign):
         value = self.evaluate(expr.value)
-        distance = self.locals[expr]
+        distance = None
+        if expr in self.locals:
+            distance = self.locals[expr]
         if distance != None:
             self.environment.assign_at(distance, expr.name, value)
         else:

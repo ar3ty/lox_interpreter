@@ -16,12 +16,12 @@ class Resolver(ExprVisitor, StmtVisitor):
 
     def visit_block_stmt(self, stmt: StmtBlock) -> None:
         self.begin_scope()
-        self.resolve(stmt.statements)
+        self.resolve_list(stmt.statements)
         self.end_scope()
         return None
     
     def visit_expression_stmt(self, stmt: StmtExpression) -> None:
-        self.resolve_single(stmt.expression)
+        self.resolve_expr(stmt.expression)
         return None
     
     def visit_function_stmt(self, stmt: StmtFunction) -> None:
@@ -31,79 +31,84 @@ class Resolver(ExprVisitor, StmtVisitor):
         return None
     
     def visit_print_stmt(self, stmt: StmtPrint) -> None:
-        self.resolve_single(stmt.expression)
+        self.resolve_expr(stmt.expression)
         return None
     
-    def visit_return_stmt(self, stmt) -> None:
+    def visit_return_stmt(self, stmt: StmtReturn) -> None:
         if self.current_function == FunctionType.NONE:
             self.error(stmt.keyword, "Can't return from top-level code.")
         if stmt.value != None:
-            self.resolve_single(stmt.value)
+            self.resolve_expr(stmt.value)
         return None
 
     def visit_if_stmt(self, stmt: StmtIf) -> None:
-        self.resolve_single(stmt.condition)
-        self.resolve_single(stmt.then_branch)
-        if stmt.else_branch != None: self.resolve_single(stmt.else_branch)
+        self.resolve_expr(stmt.condition)
+        self.resolve_stmt(stmt.then_branch)
+        if stmt.else_branch != None: self.resolve_stmt(stmt.else_branch)
         return None
     
     def visit_var_stmt(self, stmt: StmtVar) -> None:
         self.declare(stmt.name)
         if stmt.initializer != None:
-            self.resolve_single(stmt.initializer)
+            self.resolve_expr(stmt.initializer)
         self.define(stmt.name)
         return None
     
     def visit_while_stmt(self, stmt: StmtWhile) -> None:
-        self.resolve_single(stmt.condition)
-        self.resolve(stmt.body)
+        self.resolve_expr(stmt.condition)
+        self.resolve_stmt(stmt.body)
         return None
     
     def visit_assign_expr(self, expr: ExprAssign) -> None:
-        self.resolve_single(expr.value)
+        self.resolve_expr(expr.value)
         self.resolve_local(expr, expr.name)
         return None
     
     def visit_binary_expr(self, expr: ExprBinary) -> None:
-        self.resolve_single(expr.left)
-        self.resolve_single(expr.right)
+        self.resolve_expr(expr.left)
+        self.resolve_expr(expr.right)
         return None
     
     def visit_call_expr(self, expr: ExprCall) -> None:
-        self.resolve_single(expr.callee)
+        self.resolve_expr(expr.callee)
         for arg in expr.arguments:
-            self.resolve_single(arg)
+            self.resolve_expr(arg)
         return None
     
     def visit_grouping_expr(self, expr: ExprGrouping) -> None:
-        self.resolve_single(expr.expression)
+        self.resolve_expr(expr.expression)
         return None
     
     def visit_literal_expr(self, expr: ExprLiteral) -> None:
         return None
     
     def visit_logical_expr(self, expr: ExprLogical) -> None:
-        self.resolve_single(expr.left)
-        self.resolve_single(expr.right)
+        self.resolve_expr(expr.left)
+        self.resolve_expr(expr.right)
         return None
     
     def visit_unary_expr(self, expr: ExprUnary) -> None:
-        self.resolve_single(expr.right)
+        self.resolve_expr(expr.right)
         return None
     
     def visit_variable_expr(self, expr: ExprVariable) -> None:
-        if (len(self.scopes) != 0 and self.scopes[-1][expr.name.lexeme] == False):
+        if (len(self.scopes) != 0 and 
+        expr.name.lexeme in self.scopes[-1] and
+        self.scopes[-1][expr.name.lexeme] == False):
             self.error(expr.name, "Can't read local variable in its own initializer.")
         self.resolve_local(expr, expr.name)
         return None
     
-    def resolve(self, statements: list[Stmt]):
+    def resolve_list(self, statements: list[Stmt]):
         for stmt in statements:
-            self.resolve_single(stmt)
+            self.resolve_stmt(stmt)
         return self.errors
 
-    def resolve_single(self, stmt: Stmt) -> None:
+    def resolve_stmt(self, stmt: Stmt) -> None:
         stmt.accept(self)
+
+    def resolve_expr(self, expr: Expr) -> None:
+        expr.accept(self)
 
     def resolve_function(self, fun: StmtFunction, typ: FunctionType) -> None:
         enclosing_function = self.current_function
@@ -112,7 +117,7 @@ class Resolver(ExprVisitor, StmtVisitor):
         for param in fun.parameters:
             self.declare(param)
             self.define(param)
-        self.resolve(fun.body)
+        self.resolve_list(fun.body)
         self.end_scope()
         self.current_function = enclosing_function
 

@@ -55,7 +55,7 @@ def run(code: str):
     
     interpreter = Interpreter()
     resolver = Resolver(interpreter)
-    resolver_errors = resolver.resolve(statements)
+    resolver_errors = resolver.resolve_list(statements)
 
     if resolver_errors:
         for error in resolver_errors:
