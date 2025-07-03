@@ -1,13 +1,12 @@
-fun makeCounter() {
-  var i = 0;
-  fun count() {
-    i = i + 1;
-    print i;
+class Circle {
+  init(radius) {
+    this.radius = radius;
   }
 
-  return count;
+  area() {
+    return 3.141592653 * this.radius * this.radius;
+  }
 }
 
-var counter = makeCounter();
-counter();
-counter();
+var circle = Circle(4);
+print circle.area();

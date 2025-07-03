@@ -140,6 +140,9 @@ class Parser:
             if isinstance(expr, ExprVariable):
                 name = expr.name
                 return ExprAssign(name, value)
+            elif isinstance(expr, ExprGet):
+                get = expr
+                return ExprSet(get.object, get.name, value)
             raise self.error(equals, "Invalid assignment target.")
         return expr
     
@@ -164,12 +167,22 @@ class Parser:
     
     def declaration(self) -> Stmt:
         try:
+            if self.match(TokenType.CLASS): return self.class_declaration()
             if self.match(TokenType.FUN): return self.function("function")
             if self.match(TokenType.VAR): return self.var_declaration()
             return self.statement()
         except ParseError:
             self.synchronize()
             return None
+        
+    def class_declaration(self) -> Stmt:
+        name = self.consume(TokenType.IDENTIFIER, "Expect class name.")
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' before class body.")
+        methods = []
+        while (not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end()):
+            methods.append(self.function("method"))
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.")
+        return StmtClass(name, methods)
     
     def equality(self) -> Expr:
         expr = self.comparison()
@@ -227,6 +240,9 @@ class Parser:
         while True:
             if self.match(TokenType.LEFT_PAREN):
                 expr = self.finish_call(expr)
+            elif self.match(TokenType.DOT):
+                name = self.consume(TokenType.IDENTIFIER, "Expect property name after '.'.")
+                expr = ExprGet(expr, name)
             else:
                 break
         return expr
@@ -244,6 +260,7 @@ class Parser:
         if self.match(TokenType.NUMBER, TokenType.STRING):
             expr = ExprLiteral(self.previous().literal)
             return expr
+        if self.match(TokenType.THIS): return ExprThis(self.previous())
         if self.match(TokenType.IDENTIFIER):
             expr = ExprVariable(self.previous())
             return expr

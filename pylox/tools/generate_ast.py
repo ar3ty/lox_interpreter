@@ -14,14 +14,18 @@ def main() -> None:
         "Assign   : Token name, Expr value",
         "Binary   : Expr left, Token operator, Expr right",
         "Call     : Expr callee, Token paren, list[Expr] arguments",
+        "Get      : Expr object, Token name",
         "Grouping : Expr expression",
         "Literal  : Any value",
         "Logical  : Expr left, Token operator, Expr right",
+        "Set      : Expr object, Token name, Expr value",
+        "This     : Token keyword",
         "Unary    : Token operator, Expr right",
         "Variable : Token name"
     ])
     define_ast(output_dir, "Stmt", import_for_stmt, [
         "Block      : list[Stmt] statements",
+        "Class      : Token name, list['StmtFunction'] methods",
         "Expression : Expr expression",
         "Function   : Token name, list[Token] parameters, list[Stmt] body",
         "If         : Expr condition, Stmt then_branch, Stmt else_branch",

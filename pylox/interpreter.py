@@ -81,6 +81,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if len(arguments) != function.arity():
             raise self.error(expr.paren, f"Expected {function.arity()} arguments but got {len(arguments)}.")
         return function.call(self, arguments)
+    
+    def visit_get_expr(self, expr: ExprGet) -> Any:
+        obj = self.evaluate(expr.object)
+        if isinstance(obj, LoxInstance):
+            return obj.get(expr.name)
+        raise self.error(expr.name, "Only instances have properties.")
 
     def visit_grouping_expr(self, expr: ExprGrouping) -> Any:
         return self.evaluate(expr.expression)
@@ -95,6 +101,17 @@ class Interpreter(ExprVisitor, StmtVisitor):
         else:
             if not self.is_truthy(left): return left
         return self.evaluate(expr.right)
+    
+    def visit_set_expr(self, expr: ExprSet) -> Any:
+        obj = self.evaluate(expr.object)
+        if not isinstance(obj, LoxInstance):
+            raise self.error(expr.name, "Only instances have fields.")
+        value = self.evaluate(expr.value)
+        obj.set(expr.name, value)
+        return value
+    
+    def visit_this_expr(self, expr: ExprThis) -> Any:
+        return self.look_up_variable(expr.keyword, expr)
     
     def visit_unary_expr(self, expr: ExprUnary) -> str:
         right = self.evaluate(expr.right)
@@ -156,8 +173,21 @@ class Interpreter(ExprVisitor, StmtVisitor):
         finally:
             self.environment = previous
 
-    def visit_block_stmt(self, stmt: StmtBlock):
+    def visit_block_stmt(self, stmt: StmtBlock) -> None:
         self.execute_block(stmt.statements, Environment(self.environment))
+        return None
+    
+    def visit_class_stmt(self, stmt: StmtClass) -> None:
+        self.environment.define(stmt.name.lexeme, None)
+
+        methods = {}
+        for method in stmt.methods:
+            is_init = method.name.lexeme == "init"
+            fun = LoxFunction(method, self.environment, is_init)
+            methods[method.name.lexeme] = fun
+
+        klass = LoxClass(stmt.name.lexeme, methods)
+        self.environment.assign(stmt.name, klass)
         return None
     
     def error(self, token: Token, message:str) -> RuntimeException:
@@ -170,7 +200,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         return None
     
     def visit_function_stmt(self, stmt: StmtFunction) -> None:
-        function = LoxFunction(stmt, self.environment)
+        function = LoxFunction(stmt, self.environment, False)
         self.environment.define(stmt.name.lexeme, function)
         return None
     

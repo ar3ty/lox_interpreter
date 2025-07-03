@@ -4,6 +4,7 @@ from expr import Expr
 
 class StmtVisitor(Protocol):
     def visit_block_stmt(self, stmt: "StmtBlock") -> Any: ...
+    def visit_class_stmt(self, stmt: "StmtClass") -> Any: ...
     def visit_expression_stmt(self, stmt: "StmtExpression") -> Any: ...
     def visit_function_stmt(self, stmt: "StmtFunction") -> Any: ...
     def visit_if_stmt(self, stmt: "StmtIf") -> Any: ...
@@ -22,6 +23,14 @@ class StmtBlock(Stmt):
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_block_stmt(self)
+
+class StmtClass(Stmt):
+    def __init__(self, name: Token, methods: list['StmtFunction']) -> None:
+        self.name = name
+        self.methods = methods
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_class_stmt(self)
 
 class StmtExpression(Stmt):
     def __init__(self, expression: Expr) -> None:

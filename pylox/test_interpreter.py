@@ -4,6 +4,7 @@ import unittest.mock
 from scanner import Scanner
 from parser import *
 from interpreter import *
+from resolver import *
 
 class TestInterpreter(unittest.TestCase):
     def test_interpret(self):
@@ -86,9 +87,12 @@ for (var i = 0; i < 20; i = i + 1) {
         parser = Parser(tokens)
         statements, parse_errors = parser.parse()     
         self.assertEqual(parse_errors, [])
+        interpreter = Interpreter()
+        resolver = Resolver(interpreter)
+        resolver_errors = resolver.resolve_list(statements)
+        self.assertEqual(resolver_errors, [])
         output_buffer = io.StringIO()
         with unittest.mock.patch('sys.stdout', new=output_buffer):   
-            interpreter = Interpreter()
             _, errors = interpreter.interpret(statements)
         output = output_buffer.getvalue().strip()
         expected = """0
@@ -129,9 +133,12 @@ for (var b = 1; a < 100; b = temp + b) {
         parser = Parser(tokens)
         statements, parse_errors = parser.parse()     
         self.assertEqual(parse_errors, [])
+        interpreter = Interpreter()
+        resolver = Resolver(interpreter)
+        resolver_errors = resolver.resolve_list(statements)
+        self.assertEqual(resolver_errors, [])
         output_buffer = io.StringIO()
         with unittest.mock.patch('sys.stdout', new=output_buffer):   
-            interpreter = Interpreter()
             _, errors = interpreter.interpret(statements)
         output = output_buffer.getvalue().strip()
         expected = """0
@@ -149,4 +156,109 @@ for (var b = 1; a < 100; b = temp + b) {
         self.assertEqual(output, expected)
         self.assertEqual(errors, [])
 
-    
+    def test_resolver(self):
+        source = """var a = "global";
+{
+fun showA() {
+    print a;
+}
+
+showA();
+var a = "block";
+showA();
+}"""
+        scanner = Scanner(source)
+        tokens, scan_errors = scanner.scan_tokens()
+        self.assertEqual(scan_errors, [])
+        parser = Parser(tokens)
+        statements, parse_errors = parser.parse()     
+        self.assertEqual(parse_errors, [])
+        interpreter = Interpreter()
+        resolver = Resolver(interpreter)
+        resolver_errors = resolver.resolve_list(statements)
+        self.assertEqual(resolver_errors, [])
+        output_buffer = io.StringIO()
+        with unittest.mock.patch('sys.stdout', new=output_buffer):   
+            _, errors = interpreter.interpret(statements)
+        output = output_buffer.getvalue().strip()
+        expected = """global
+global"""
+        self.assertEqual(output, expected)
+        self.assertEqual(errors, [])
+
+    def test_return_in_global(self):
+        source = """var a = "global";
+return a;"""
+        scanner = Scanner(source)
+        tokens, scan_errors = scanner.scan_tokens()
+        self.assertEqual(scan_errors, [])
+        parser = Parser(tokens)
+        statements, parse_errors = parser.parse()     
+        self.assertEqual(parse_errors, [])
+        interpreter = Interpreter()
+        resolver = Resolver(interpreter)
+        resolver_errors = resolver.resolve_list(statements)
+        self.assertEqual(resolver_errors[-1].message, "Can't return from top-level code.")
+
+    def test_class_instance(self):
+        source = """class Thing {
+  getCallback() {
+    fun localFunction() {
+      print this;
+    }
+
+    return localFunction;
+  }
+}
+
+var callback = Thing().getCallback();
+callback();"""
+        scanner = Scanner(source)
+        tokens, scan_errors = scanner.scan_tokens()
+        self.assertEqual(scan_errors, [])
+        parser = Parser(tokens)
+        statements, parse_errors = parser.parse()     
+        self.assertEqual(parse_errors, [])
+        interpreter = Interpreter()
+        resolver = Resolver(interpreter)
+        resolver_errors = resolver.resolve_list(statements)
+        self.assertEqual(resolver_errors, [])
+        output_buffer = io.StringIO()
+        with unittest.mock.patch('sys.stdout', new=output_buffer):   
+            _, errors = interpreter.interpret(statements)
+        output = output_buffer.getvalue().strip()
+        expected = "Thing instance"
+        self.assertEqual(output, expected)
+        self.assertEqual(errors, [])
+
+    def test_class(self):
+        source = """class Circle {
+  init(radius) {
+    this.radius = radius;
+  }
+
+  area() {
+    return 3.141592653 * this.radius * this.radius;
+  }
+}
+
+var circle = Circle(4);
+print circle.area();"""
+        scanner = Scanner(source)
+        tokens, scan_errors = scanner.scan_tokens()
+        self.assertEqual(scan_errors, [])
+        parser = Parser(tokens)
+        statements, parse_errors = parser.parse()     
+        self.assertEqual(parse_errors, [])
+        interpreter = Interpreter()
+        resolver = Resolver(interpreter)
+        resolver_errors = resolver.resolve_list(statements)
+        self.assertEqual(resolver_errors, [])
+        output_buffer = io.StringIO()
+        with unittest.mock.patch('sys.stdout', new=output_buffer):   
+            _, errors = interpreter.interpret(statements)
+        output = output_buffer.getvalue().strip()
+        expected = "50.265482448"
+        self.assertEqual(output, expected)
+        self.assertEqual(errors, [])
+        
