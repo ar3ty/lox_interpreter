@@ -6,7 +6,7 @@ class A {
 
 class B < A {
   method() {
-    print "B method";
+    print "B method"
   }
 
   test() {
@@ -17,3 +17,7 @@ class B < A {
 class C < B {}
 
 C().test();
+
+var a = 5;
+var b = 6;
+print a + b;
