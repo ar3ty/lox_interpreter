@@ -25,8 +25,9 @@ class StmtBlock(Stmt):
         return visitor.visit_block_stmt(self)
 
 class StmtClass(Stmt):
-    def __init__(self, name: Token, methods: list['StmtFunction']) -> None:
+    def __init__(self, name: Token, superclass: 'ExprVariable', methods: list['StmtFunction']) -> None:
         self.name = name
+        self.superclass = superclass
         self.methods = methods
 
     def accept(self, visitor: StmtVisitor) -> Any:

@@ -12,6 +12,7 @@ class FunctionType(Enum):
 class ClassType(Enum):
    NONE = "NONE"
    CLASS = "CLASS"
+   SUBCLASS = "SUBCLASS"
 
 class Resolver(ExprVisitor, StmtVisitor):
     def __init__(self, interpeter) -> None:
@@ -32,6 +33,16 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.current_class = ClassType.CLASS
         self.declare(stmt.name)
         self.define(stmt.name)
+        if stmt.superclass != None:
+            if stmt.name.lexeme == stmt.superclass.name.lexeme:
+                self.error(stmt.superclass.name, "A class can't inherit from itself.")
+            else:
+                self.current_class = ClassType.SUBCLASS
+                self.resolve_expr(stmt.superclass)
+
+        if stmt.superclass != None:
+            self.begin_scope()
+            self.scopes[-1]["super"] = True
         self.begin_scope()
         self.scopes[-1]["this"] = True
         for method in stmt.methods:
@@ -40,6 +51,7 @@ class Resolver(ExprVisitor, StmtVisitor):
                 declaration = FunctionType.INITIALIZER
             self.resolve_function(method, declaration)
         self.end_scope()
+        if stmt.superclass != None: self.end_scope()
         self.current_class = enclosing_class
         return None
     
@@ -116,12 +128,21 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.resolve_expr(expr.right)
         return None
     
-    def visit_set_expr(self, expr: ExprSet):
+    def visit_set_expr(self, expr: ExprSet) -> None:
         self.resolve_expr(expr.value)
         self.resolve_expr(expr.object)
         return None
     
-    def visit_this_expr(self, expr: ExprThis):
+    def visit_super_expr(self, expr: ExprSuper) -> None:
+        if self.current_class == ClassType.NONE:
+            self.error(expr.keyword, "Can't use 'super' outside of a class.")
+        elif self.current_class != ClassType.SUBCLASS:
+            self.error(expr.keyword, "Can't use 'super' in a class. with no superclasses.")
+        else:
+            self.resolve_local(expr, expr.keyword)
+        return None
+    
+    def visit_this_expr(self, expr: ExprThis) -> None:
         if self.current_class == ClassType.NONE:
             self.error(expr.keyword, "Can't use 'this' outside of a class.")
             return None

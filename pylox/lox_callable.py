@@ -54,13 +54,16 @@ class LoxFunction(LoxCallable):
         return f"function {self.declaration.name.lexeme}"
     
 class LoxClass(LoxCallable):
-    def __init__(self, name: str, methods: dict):
+    def __init__(self, name: str, superclass: 'LoxClass', methods: dict):
         self.name = name
+        self.superclass = superclass
         self.methods = methods
 
     def find_method(self, name: str) -> LoxFunction:
         if name in self.methods:
             return self.methods[name]
+        if self.superclass != None:
+            return self.superclass.find_method(name)
         return None
 
     def call(self, interpreter, arguments: list[Any]):

@@ -261,4 +261,43 @@ print circle.area();"""
         expected = "50.265482448"
         self.assertEqual(output, expected)
         self.assertEqual(errors, [])
+
+    def test_inheritance(self):
+        source = """class A {
+  method() {
+    print "A method";
+  }
+}
+
+class B < A {
+  method() {
+    print "B method";
+  }
+
+  test() {
+    super.method();
+  }
+}
+
+class C < B {
+}
+
+C().test();"""
+        scanner = Scanner(source)
+        tokens, scan_errors = scanner.scan_tokens()
+        self.assertEqual(scan_errors, [])
+        parser = Parser(tokens)
+        statements, parse_errors = parser.parse()     
+        self.assertEqual(parse_errors, [])
+        interpreter = Interpreter()
+        resolver = Resolver(interpreter)
+        resolver_errors = resolver.resolve_list(statements)
+        self.assertEqual(resolver_errors, [])
+        output_buffer = io.StringIO()
+        with unittest.mock.patch('sys.stdout', new=output_buffer):   
+            _, errors = interpreter.interpret(statements)
+        output = output_buffer.getvalue().strip()
+        expected = "A method"
+        self.assertEqual(output, expected)
+        self.assertEqual(errors, [])
         
