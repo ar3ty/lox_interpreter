@@ -80,16 +80,16 @@ static void skipWhitespace() {
             case '\t':
                 advance();
                 break;
-            case '\n':
-                scanner.line++;
-                advance();
-                break;
             case '/':
                 if (peekNext() == '/') {
                     while (peek() != '\n' && !isAtEnd()) advance();
                 } else {
                     return;
                 }
+            case '\n':
+                scanner.line++;
+                advance();
+                break;
             default:
                 return;
         }
@@ -177,6 +177,7 @@ Token scanToken() {
     if (isAtEnd()) return makeToken(TOKEN_EOF);
 
     char c = advance();
+    
     if (isAlpha(c)) return identifier();
     if (isDigit(c)) return number();
 

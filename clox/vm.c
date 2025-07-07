@@ -87,5 +87,5 @@ static InterpretResult run() {
 
 InterpretResult interpret(const char* source) {
     compile(source);
-    return INTERPRET_OK;
+    return INTERPET_OK;
 }
